@@ -23,5 +23,4 @@ Thumbs.db
 *.sw?
 .env
 .env.local
-# .env.production
 .env.*.local
