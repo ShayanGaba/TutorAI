@@ -1,3 +1,6 @@
+from duckduckgo_search import DDGS
+import re
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,6 +15,33 @@ import json
 import asyncio  # ⭐ ADD THIS
 
 app = FastAPI()
+
+def needs_web_search(message: str) -> bool:
+    """Check if message needs current/latest info"""
+    keywords = [
+        "latest", "recent", "today", "2026", "2025", "now", "current",
+        "news", "update", "new", "just", "recently", "this week",
+        "this month", "what happened", "who won", "price of", "stock"
+    ]
+    message_lower = message.lower()
+    return any(kw in message_lower for kw in keywords)
+
+def web_search(query: str) -> str:
+    """Search web and return formatted results"""
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=4))
+        if not results:
+            return ""
+        
+        search_context = "CURRENT WEB SEARCH RESULTS (use this for latest info):\n\n"
+        for i, r in enumerate(results, 1):
+            search_context += f"{i}. {r.get('title', '')}\n"
+            search_context += f"   {r.get('body', '')}\n"
+            search_context += f"   Source: {r.get('href', '')}\n\n"
+        return search_context
+    except Exception as e:
+        return ""
 
 app.add_middleware(
     CORSMiddleware,
@@ -67,6 +97,11 @@ async def chat(data: Message, session_id: str = Header(default="default")):
     if data.pdf_context:
         system = f"You have access to this document:\n---\n{data.pdf_context}\n---\n" + system
 
+    if needs_web_search(data.message):
+        search_context = web_search(data.message)
+        if search_context:
+            system = system + f"\n\n{search_context}\nToday's date is May 2026. Use the search results above to answer accurately."
+
     history = conversation_histories.setdefault(session_id, [])
 
     if data.image_data:
@@ -78,7 +113,7 @@ async def chat(data: Message, session_id: str = Header(default="default")):
             base64_str = data.image_data
 
         text_only_history = [m for m in history if isinstance(m.get("content"), str)]
-        
+                
         messages_to_send = (
             [{"role": "system", "content": system}]
             + text_only_history

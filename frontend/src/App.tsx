@@ -166,8 +166,8 @@ export default function App() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden"
-      style={{ background: "var(--bg-base)" }}
+      className="flex overflow-hidden"
+      style={{ background: "var(--bg-base)", height: "100dvh" }}
     >
       {/* Mobile overlay */}
       {isMobile && isSidebarOpen && (
@@ -204,6 +204,7 @@ export default function App() {
         <TopBar
           currentMode={currentMode}
           activeFile={activeFile}
+          messages={messages}
           onToggleSidebar={() => setIsSidebarOpen((p) => !p)}
           onOpenFileUpload={() => setIsFileUploadOpen(true)}
           onClearChat={handleClearChat}

@@ -88,6 +88,7 @@ export function ChatInput({
         WebkitBackdropFilter: "blur(20px)",
         background: "rgba(10,10,15,0.92)",
         borderTop: "1px solid var(--border-subtle)",
+        paddingBottom: "max(16px, env(safe-area-inset-bottom))", // ADD THIS
       }}
     >
       <div className="max-w-3xl mx-auto w-full">

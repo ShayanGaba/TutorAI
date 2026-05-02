@@ -3,3 +3,4 @@ uvicorn[standard]
 groq
 pydantic
 python-dotenv
+duckduckgo-search
