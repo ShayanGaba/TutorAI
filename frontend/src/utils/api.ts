@@ -9,6 +9,56 @@ function getSessionId(): string {
   return id;
 }
 
+async function streamResponse(
+  response: Response,
+  signal: AbortSignal | undefined,
+  onChunk?: (chunk: string) => void,
+  onStart?: () => void,
+): Promise<string> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let fullReply = "";
+  let hasStarted = false;
+  let buffer = "";
+
+  try {
+    while (true) {
+      if (signal?.aborted) break;
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const json = JSON.parse(line.slice(6));
+          if (json.chunk) {
+            if (!hasStarted) {
+              hasStarted = true;
+              onStart?.();
+            }
+            fullReply += json.chunk;
+            onChunk?.(json.chunk);
+          }
+          if (json.error) throw new Error(json.error);
+          if (json.done) break;
+        } catch {}
+      }
+    }
+  } catch (err: any) {
+    if (err?.name === "AbortError" || signal?.aborted) return fullReply;
+    throw err;
+  } finally {
+    try {
+      reader.cancel();
+    } catch {}
+  }
+  return fullReply;
+}
+
 export async function sendMessage(
   message: string,
   mode: string,
@@ -17,9 +67,9 @@ export async function sendMessage(
   signal?: AbortSignal,
   onChunk?: (chunk: string) => void,
   onStart?: () => void,
+  language: string = "English",
 ): Promise<string> {
   let response: Response;
-
   try {
     response = await fetch(`${BASE_URL}/chat`, {
       method: "POST",
@@ -32,79 +82,41 @@ export async function sendMessage(
         mode,
         pdf_context: pdfContext,
         image_data: imageData || null,
+        language,
       }),
       signal,
     });
   } catch (err: any) {
-    // If aborted before response — don't throw, return empty
     if (err?.name === "AbortError") return "";
     throw new Error("Failed to fetch");
   }
+  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  return streamResponse(response, signal, onChunk, onStart);
+}
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
-  }
-
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let fullReply = "";
-  let hasStarted = false;
-  let buffer = "";
-
+export async function summarizeYouTube(
+  url: string,
+  language: string = "English",
+  signal?: AbortSignal,
+  onChunk?: (chunk: string) => void,
+): Promise<string> {
+  let response: Response;
   try {
-    while (true) {
-      // Check if aborted before each read
-      if (signal?.aborted) break;
-
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-
-      // Keep last incomplete line in buffer
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-
-        try {
-          const json = JSON.parse(line.slice(6));
-
-          if (json.chunk) {
-            if (!hasStarted) {
-              hasStarted = true;
-              onStart?.();
-            }
-            fullReply += json.chunk;
-            onChunk?.(json.chunk);
-          }
-
-          if (json.error) {
-            throw new Error(json.error);
-          }
-
-          if (json.done) break;
-        } catch {
-          // Skip malformed lines
-        }
-      }
-    }
+    response = await fetch(`${BASE_URL}/youtube`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "session-id": getSessionId(),
+      },
+      body: JSON.stringify({ url, language }),
+      signal,
+    });
   } catch (err: any) {
-    // Aborted mid-stream — return what we have so far (don't throw)
-    if (err?.name === "AbortError" || signal?.aborted) {
-      return fullReply;
-    }
-    throw err;
-  } finally {
-    try {
-      reader.cancel();
-    } catch {
-      /* ignore */
-    }
+    if (err?.name === "AbortError") return "";
+    throw new Error("Failed to fetch");
   }
-
-  return fullReply;
+  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  return streamResponse(response, signal, onChunk);
 }
 
 export async function resetConversation(): Promise<void> {
@@ -117,7 +129,5 @@ export async function resetConversation(): Promise<void> {
       },
       body: JSON.stringify({}),
     });
-  } catch {
-    // Silently fail
-  }
+  } catch {}
 }

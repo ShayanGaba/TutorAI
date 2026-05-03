@@ -3,10 +3,21 @@ import {
   Code2,
   Brain,
   Lightbulb,
+  Play,
   type LucideIcon,
 } from "lucide-react";
 
-export type AIMode = "tutor" | "code" | "think" | "creative";
+export type AIMode = "tutor" | "code" | "think" | "creative" | "youtube";
+export type Theme = "dark" | "light";
+export type Language =
+  | "English"
+  | "Urdu"
+  | "Arabic"
+  | "Spanish"
+  | "French"
+  | "German"
+  | "Chinese"
+  | "Hindi";
 
 export interface Message {
   id: string;
@@ -45,6 +56,7 @@ export interface ActiveFile {
   size: number;
   type: "pdf" | "image";
   data?: string;
+  previewUrl?: string; // ✅ for image preview
 }
 
 export interface ToastItem {
@@ -63,6 +75,17 @@ export interface ModeConfig {
   subtitle: string;
   chips: { text: string }[];
 }
+
+export const LANGUAGES: Language[] = [
+  "English",
+  "Urdu",
+  "Arabic",
+  "Spanish",
+  "French",
+  "German",
+  "Chinese",
+  "Hindi",
+];
 
 export const MODES: Record<AIMode, ModeConfig> = {
   tutor: {
@@ -119,6 +142,20 @@ export const MODES: Record<AIMode, ModeConfig> = {
       { text: "Brainstorm app ideas" },
       { text: "Draft a cold email" },
       { text: "Create a marketing strategy" },
+    ],
+  },
+  youtube: {
+    id: "youtube",
+    Icon: Play,
+    name: "YouTubeAI",
+    description: "Summarize any YouTube video",
+    placeholder: "Paste a YouTube URL to summarize...",
+    subtitle: "Paste any YouTube link — I'll summarize it for you",
+    chips: [
+      { text: "https://youtu.be/example" },
+      { text: "Summarize a tech talk" },
+      { text: "Summarize a lecture" },
+      { text: "Summarize a tutorial" },
     ],
   },
 };

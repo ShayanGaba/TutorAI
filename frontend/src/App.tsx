@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { AIMode, ChatHistoryItem } from "./types";
+import type { AIMode, ChatHistoryItem, Language } from "./types";
 import { MODES } from "./types";
 import { useChat } from "./hooks/useChat";
 import { useChatHistory } from "./hooks/useChatHistory";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useToast } from "./hooks/useToast";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { ChatArea } from "./components/Chat/ChatArea";
@@ -12,20 +13,24 @@ import { ChatInput } from "./components/Input/ChatInput";
 import { StopButton } from "./components/Chat/StopButton";
 import { FileUpload } from "./components/Input/FileUpload";
 import { ToastContainer } from "./components/UI/Toast";
+import { KeyboardShortcuts } from "./components/UI/KeyboardShortcuts";
 
-export default function App() {
+function AppInner() {
   const [currentMode, setCurrentMode] = useState<AIMode>("tutor");
   const [inputValue, setInputValue] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
   const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [language, setLanguage] = useState<Language>("English");
 
+  const { theme, toggleTheme } = useTheme();
   const { toasts, addToast, removeToast } = useToast();
 
   const {
     messages,
     isLoading,
     isStreaming,
-    isThinking, // ⭐ ADDED
+    isThinking,
     streamingMessageId,
     sendChat,
     stopGeneration,
@@ -42,7 +47,6 @@ export default function App() {
     removeFromHistory,
     clearHistory,
   } = useChatHistory();
-
   const {
     activeFile,
     pdfContext,
@@ -55,21 +59,73 @@ export default function App() {
 
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
-
   const modeRef = useRef(currentMode);
   modeRef.current = currentMode;
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === "/") {
+          e.preventDefault();
+          setShowShortcuts((p) => !p);
+        }
+        if (e.key === "l" || e.key === "L") {
+          e.preventDefault();
+          toggleTheme();
+        }
+        if (e.key === "k" || e.key === "K") {
+          e.preventDefault();
+          handleClearChat();
+        }
+        if (e.key === "1") {
+          e.preventDefault();
+          handleModeChange("tutor");
+        }
+        if (e.key === "2") {
+          e.preventDefault();
+          handleModeChange("code");
+        }
+        if (e.key === "3") {
+          e.preventDefault();
+          handleModeChange("think");
+        }
+        if (e.key === "4") {
+          e.preventDefault();
+          handleModeChange("creative");
+        }
+        if (e.key === "5") {
+          e.preventDefault();
+          handleModeChange("youtube");
+        }
+      }
+      if (e.key === "Escape") {
+        stopGeneration();
+        setShowShortcuts(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [toggleTheme, stopGeneration]);
+
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    if (!text) return;
+    if (!text && !pendingImage) return;
     setInputValue("");
-    await sendChat(text, currentMode, pdfContext, pendingImage || undefined);
+    await sendChat(
+      text,
+      currentMode,
+      pdfContext,
+      pendingImage || undefined,
+      language,
+    );
     if (pendingImage) clearPendingImage();
   }, [
     inputValue,
     currentMode,
     pdfContext,
     pendingImage,
+    language,
     sendChat,
     clearPendingImage,
   ]);
@@ -78,12 +134,11 @@ export default function App() {
     (text: string) => {
       setInputValue(text);
       setTimeout(() => {
-        sendChat(text, currentMode, pdfContext, pendingImage || undefined);
+        sendChat(text, currentMode, pdfContext, undefined, language);
         setInputValue("");
-        if (pendingImage) clearPendingImage();
       }, 300);
     },
-    [currentMode, pdfContext, pendingImage, sendChat, clearPendingImage],
+    [currentMode, pdfContext, language, sendChat],
   );
 
   const handleNewChat = useCallback(async () => {
@@ -99,16 +154,13 @@ export default function App() {
   const handleModeChange = useCallback(
     async (newMode: AIMode) => {
       if (newMode === currentMode) return;
-
-      if (messagesRef.current.length > 0) {
+      if (messagesRef.current.length > 0)
         saveConversation(messagesRef.current, modeRef.current);
-      }
-
       setMessages([]);
       setCurrentMode(newMode);
       clearFile();
       setInputValue("");
-      addToast(`Switched to ${MODES[newMode].name} — new chat started`, "info");
+      addToast(`Switched to ${MODES[newMode].name}`, "info");
     },
     [currentMode, saveConversation, clearFile, addToast, setMessages],
   );
@@ -135,25 +187,6 @@ export default function App() {
     }
   }, [messages.length, clearMessages, clearFile, addToast]);
 
-  const handleRegenerate = useCallback(async () => {
-    await regenerateLastResponse(currentMode, pdfContext);
-  }, [currentMode, pdfContext, regenerateLastResponse]);
-
-  const handleRetry = useCallback(
-    async (errorContent: string) => {
-      const lastUserMsg = [...messagesRef.current]
-        .reverse()
-        .find((m) => m.role === "user");
-      if (lastUserMsg) {
-        await sendChat(lastUserMsg.content, currentMode, pdfContext);
-      } else {
-        await sendChat(errorContent, currentMode, pdfContext);
-      }
-    },
-    [currentMode, pdfContext, sendChat],
-  );
-
-  // Close sidebar overlay on resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) setIsSidebarOpen(true);
@@ -199,38 +232,47 @@ export default function App() {
         />
       </div>
 
-      {/* Main content */}
+      {/* Main */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopBar
           currentMode={currentMode}
           activeFile={activeFile}
           messages={messages}
+          language={language}
           onToggleSidebar={() => setIsSidebarOpen((p) => !p)}
           onOpenFileUpload={() => setIsFileUploadOpen(true)}
           onClearChat={handleClearChat}
           onRemoveFile={clearFile}
+          onToggleShortcuts={() => setShowShortcuts((p) => !p)}
+          onLanguageChange={setLanguage}
         />
 
         <ChatArea
           messages={messages}
           isLoading={isLoading}
-          isThinking={isThinking} // ⭐ ADDED
+          isThinking={isThinking}
           currentMode={currentMode}
           onSuggestion={handleSuggestion}
           onFeedback={setMessageFeedback}
-          onRegenerate={handleRegenerate}
-          onRetry={handleRetry}
+          onRegenerate={() => regenerateLastResponse(currentMode, pdfContext)}
+          onRetry={async () => {
+            const last = [...messagesRef.current]
+              .reverse()
+              .find((m) => m.role === "user");
+            if (last)
+              await sendChat(
+                last.content,
+                currentMode,
+                pdfContext,
+                undefined,
+                language,
+              );
+          }}
         />
 
-        <div
-          className="flex-shrink-0"
-          style={{
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-          }}
-        >
+        <div className="flex-shrink-0">
           {(isStreaming || isLoading) && (
-            <div className="max-w-3xl mx-auto w-full px-4 pt-3">
+            <div className="max-w-3xl mx-auto w-full px-4 pt-2">
               <StopButton onStop={stopGeneration} />
             </div>
           )}
@@ -249,7 +291,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* File Upload Modal */}
       <FileUpload
         isOpen={isFileUploadOpen}
         onClose={() => setIsFileUploadOpen(false)}
@@ -257,8 +298,19 @@ export default function App() {
         isProcessing={isProcessing}
       />
 
-      {/* Toasts */}
+      <KeyboardShortcuts
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
   );
 }
