@@ -5,17 +5,20 @@ import { MODES } from "../../types";
 import { FilePreviewBar } from "./FilePreviewBar";
 import { useVoice } from "../../hooks/useVoice";
 import { TokenCounter } from "../UI/TokenCounter";
+import { PromptSuggestions } from "./PromptSuggestions";
 
 interface ChatInputProps {
   value: string;
   onChange: (val: string) => void;
   onSend: () => void;
+  onSuggestionSelect: (text: string) => void;
   currentMode: AIMode;
   isLoading: boolean;
   isStreaming: boolean;
   activeFile: ActiveFile | null;
   pendingImage: string | null;
   pendingImageName?: string;
+  hasMessages: boolean;
   onOpenFileUpload: () => void;
   onRemoveFile: () => void;
 }
@@ -24,12 +27,14 @@ export function ChatInput({
   value,
   onChange,
   onSend,
+  onSuggestionSelect,
   currentMode,
   isLoading,
   isStreaming,
   activeFile,
   pendingImage,
   pendingImageName,
+  hasMessages,
   onOpenFileUpload,
   onRemoveFile,
 }: ChatInputProps) {
@@ -89,10 +94,9 @@ export function ChatInput({
           <FilePreviewBar activeFile={activeFile} onRemove={onRemoveFile} />
         )}
 
-        {/* Pending image preview — VISIBLE before sending */}
         {pendingImage && (
           <div
-            className="flex items-center gap-3 mb-2 p-2 rounded-xl animate-fade-in-up"
+            className="flex items-center gap-3 mb-2 p-2 rounded-xl"
             style={{
               background: "rgba(124,58,237,0.08)",
               border: "1px solid rgba(124,58,237,0.25)",
@@ -125,7 +129,6 @@ export function ChatInput({
           </div>
         )}
 
-        {/* Voice indicator */}
         {isListening && (
           <div
             className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg"
@@ -149,7 +152,15 @@ export function ChatInput({
           </div>
         )}
 
-        {/* Input box */}
+        <PromptSuggestions
+          inputValue={value}
+          currentMode={currentMode}
+          isLoading={isLoading}
+          isStreaming={isStreaming}
+          hasMessages={hasMessages}
+          onSelect={onSuggestionSelect}
+        />
+
         <div
           className="flex items-end gap-2 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3"
           style={{
@@ -229,7 +240,6 @@ export function ChatInput({
           </button>
         </div>
 
-        {/* Bottom row: token counter + hint */}
         <div className="flex items-center justify-between mt-1.5 px-1">
           <TokenCounter text={value} />
           <p style={{ color: "var(--text-muted)", fontSize: "11px" }}>
@@ -237,13 +247,7 @@ export function ChatInput({
           </p>
         </div>
       </div>
-
-      <style>{`
-        @keyframes voicePulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.3); }
-        }
-      `}</style>
+      <style>{`@keyframes voicePulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.3)} }`}</style>
     </div>
   );
 }

@@ -14,6 +14,32 @@ import { StopButton } from "./components/Chat/StopButton";
 import { FileUpload } from "./components/Input/FileUpload";
 import { ToastContainer } from "./components/UI/Toast";
 import { KeyboardShortcuts } from "./components/UI/KeyboardShortcuts";
+import { WelcomePage } from "./components/Welcome/WelcomePage";
+import { summarizeYouTube } from "./utils/api";
+import { generateFlashcards, generateQuiz } from "./utils/generateFlashcards";
+import type { FlashcardData, QuizQuestion } from "./utils/generateFlashcards";
+
+function extractYouTubeUrl(text: string): string | null {
+  const patterns = [
+    /https?:\/\/(?:www\.)?youtube\.com\/watch\?[^\s]*/,
+    /https?:\/\/youtu\.be\/[^\s]*/,
+    /https?:\/\/(?:www\.)?youtube\.com\/shorts\/[^\s]*/,
+    /https?:\/\/(?:www\.)?youtube\.com\/embed\/[^\s]*/,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) return m[0];
+  }
+  return null;
+}
+
+async function handleGenerateContent(
+  content: string,
+  type: "flashcard" | "quiz",
+): Promise<FlashcardData[] | QuizQuestion[]> {
+  if (type === "flashcard") return generateFlashcards(content);
+  return generateQuiz(content);
+}
 
 function AppInner() {
   const [currentMode, setCurrentMode] = useState<AIMode>("tutor");
@@ -22,8 +48,9 @@ function AppInner() {
   const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [language, setLanguage] = useState<Language>("English");
+  const [showWelcome, setShowWelcome] = useState(true);
 
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const { toasts, addToast, removeToast } = useToast();
 
   const {
@@ -31,8 +58,8 @@ function AppInner() {
     isLoading,
     isStreaming,
     isThinking,
-    streamingMessageId,
     sendChat,
+    sendYouTube,
     stopGeneration,
     clearMessages,
     regenerateLastResponse,
@@ -61,8 +88,9 @@ function AppInner() {
   messagesRef.current = messages;
   const modeRef = useRef(currentMode);
   modeRef.current = currentMode;
+  const languageRef = useRef(language);
+  languageRef.current = language;
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -108,16 +136,28 @@ function AppInner() {
     return () => window.removeEventListener("keydown", handler);
   }, [toggleTheme, stopGeneration]);
 
+  const handleWelcomeSelect = useCallback((mode: AIMode) => {
+    setCurrentMode(mode);
+    setShowWelcome(false);
+  }, []);
+
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
     if (!text && !pendingImage) return;
     setInputValue("");
+
+    const youtubeUrl = extractYouTubeUrl(text);
+    if (youtubeUrl && !pendingImage) {
+      await sendYouTube(youtubeUrl, text, languageRef.current);
+      return;
+    }
+
     await sendChat(
       text,
       currentMode,
       pdfContext,
       pendingImage || undefined,
-      language,
+      languageRef.current,
     );
     if (pendingImage) clearPendingImage();
   }, [
@@ -125,20 +165,22 @@ function AppInner() {
     currentMode,
     pdfContext,
     pendingImage,
-    language,
     sendChat,
+    sendYouTube,
     clearPendingImage,
   ]);
 
   const handleSuggestion = useCallback(
     (text: string) => {
-      setInputValue(text);
-      setTimeout(() => {
-        sendChat(text, currentMode, pdfContext, undefined, language);
-        setInputValue("");
-      }, 300);
+      setInputValue("");
+      const youtubeUrl = extractYouTubeUrl(text);
+      if (youtubeUrl) {
+        sendYouTube(youtubeUrl, text, languageRef.current);
+      } else {
+        sendChat(text, currentMode, pdfContext, undefined, languageRef.current);
+      }
     },
-    [currentMode, pdfContext, language, sendChat],
+    [currentMode, pdfContext, sendChat, sendYouTube],
   );
 
   const handleNewChat = useCallback(async () => {
@@ -149,20 +191,29 @@ function AppInner() {
     await clearMessages();
     clearFile();
     setInputValue("");
+    setShowWelcome(true);
   }, [saveConversation, clearMessages, clearFile, addToast]);
 
   const handleModeChange = useCallback(
     async (newMode: AIMode) => {
-      if (newMode === currentMode) return;
+      if (newMode === currentMode && !showWelcome) return;
       if (messagesRef.current.length > 0)
         saveConversation(messagesRef.current, modeRef.current);
       setMessages([]);
       setCurrentMode(newMode);
       clearFile();
       setInputValue("");
+      setShowWelcome(false);
       addToast(`Switched to ${MODES[newMode].name}`, "info");
     },
-    [currentMode, saveConversation, clearFile, addToast, setMessages],
+    [
+      currentMode,
+      showWelcome,
+      saveConversation,
+      clearFile,
+      addToast,
+      setMessages,
+    ],
   );
 
   const handleSelectHistory = useCallback(
@@ -174,6 +225,7 @@ function AppInner() {
       }));
       setMessages(restored);
       setCurrentMode(item.mode);
+      setShowWelcome(false);
     },
     [setMessages],
   );
@@ -184,6 +236,7 @@ function AppInner() {
       await clearMessages();
       clearFile();
       addToast("Conversation cleared", "info");
+      setShowWelcome(true);
     }
   }, [messages.length, clearMessages, clearFile, addToast]);
 
@@ -197,12 +250,20 @@ function AppInner() {
 
   const isMobile = window.innerWidth < 768;
 
+  if (showWelcome) {
+    return (
+      <>
+        <WelcomePage onSelectMode={handleWelcomeSelect} />
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </>
+    );
+  }
+
   return (
     <div
       className="flex overflow-hidden"
       style={{ background: "var(--bg-base)", height: "100dvh" }}
     >
-      {/* Mobile overlay */}
       {isMobile && isSidebarOpen && (
         <div
           className="fixed inset-0 z-30"
@@ -211,7 +272,6 @@ function AppInner() {
         />
       )}
 
-      {/* Sidebar */}
       <div
         className={`${isMobile ? "fixed left-0 top-0 bottom-0 z-40" : "relative"} flex-shrink-0`}
       >
@@ -232,7 +292,6 @@ function AppInner() {
         />
       </div>
 
-      {/* Main */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopBar
           currentMode={currentMode}
@@ -254,7 +313,10 @@ function AppInner() {
           currentMode={currentMode}
           onSuggestion={handleSuggestion}
           onFeedback={setMessageFeedback}
-          onRegenerate={() => regenerateLastResponse(currentMode, pdfContext)}
+          onGenerate={handleGenerateContent}
+          onRegenerate={() =>
+            regenerateLastResponse(currentMode, pdfContext, languageRef.current)
+          }
           onRetry={async () => {
             const last = [...messagesRef.current]
               .reverse()
@@ -265,7 +327,7 @@ function AppInner() {
                 currentMode,
                 pdfContext,
                 undefined,
-                language,
+                languageRef.current,
               );
           }}
         />
@@ -280,11 +342,13 @@ function AppInner() {
             value={inputValue}
             onChange={setInputValue}
             onSend={handleSend}
+            onSuggestionSelect={handleSuggestion}
             currentMode={currentMode}
             isLoading={isLoading}
             isStreaming={isStreaming}
             activeFile={activeFile}
             pendingImage={pendingImage}
+            hasMessages={messages.length > 0}
             onOpenFileUpload={() => setIsFileUploadOpen(true)}
             onRemoveFile={clearFile}
           />
@@ -297,7 +361,6 @@ function AppInner() {
         onFile={handleFile}
         isProcessing={isProcessing}
       />
-
       <KeyboardShortcuts
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}

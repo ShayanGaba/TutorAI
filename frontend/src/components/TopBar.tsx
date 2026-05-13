@@ -9,12 +9,14 @@ import {
   Sun,
   Moon,
   Keyboard,
+  Globe,
 } from "lucide-react";
 import type { AIMode, ActiveFile, Message, Language } from "../types";
-import { MODES } from "../types";
+import { LANGUAGES, MODES } from "../types";
 import { useTheme } from "../contexts/ThemeContext";
 import { LanguageSelector } from "./UI/LanguageSelector";
 import jsPDF from "jspdf";
+import { useState } from "react";
 
 interface TopBarProps {
   currentMode: AIMode;
@@ -44,6 +46,7 @@ export function TopBar({
   const mode = MODES[currentMode];
   const { Icon } = mode;
   const { theme, toggleTheme } = useTheme();
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
 
   const exportChat = () => {
     if (messages.length === 0) return;
@@ -83,35 +86,33 @@ export function TopBar({
 
   return (
     <header
-      className="flex items-center justify-between px-3 py-2.5 flex-shrink-0"
+      className="flex items-center justify-between px-2 sm:px-3 py-2 flex-shrink-0"
       style={{
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         background: "rgba(var(--bg-base-rgb, 10,10,15),0.8)",
         borderBottom: "1px solid var(--border-subtle)",
         zIndex: 10,
-        minHeight: "52px",
+        minHeight: "48px",
       }}
     >
       {/* Left */}
-      <button
-        onClick={onToggleSidebar}
-        className="p-2 rounded-lg transition-colors hover:opacity-70 md:hidden"
-        style={{
-          color: "var(--text-secondary)",
-          background: "var(--glass-bg)",
-        }}
-      >
-        <Menu size={18} />
-      </button>
-
-      {/* Center */}
-      <div className="flex items-center gap-2 flex-1 justify-center md:justify-start md:ml-0 ml-2">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <button
+          onClick={onToggleSidebar}
+          className="p-1.5 rounded-lg transition-colors hover:opacity-70 md:hidden"
+          style={{
+            color: "var(--text-secondary)",
+            background: "var(--glass-bg)",
+          }}
+        >
+          <Menu size={16} />
+        </button>
         <div
           className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: "rgba(124,58,237,0.2)" }}
         >
-          <Icon size={13} style={{ color: "#A78BFA" }} />
+          <Icon size={12} style={{ color: "#A78BFA" }} />
         </div>
         <span
           className="font-semibold text-sm hidden sm:block"
@@ -120,18 +121,23 @@ export function TopBar({
           {mode.name}
         </span>
         <span
-          className="text-xs px-2 py-0.5 rounded-full font-mono hidden md:block"
+          className="text-xs px-1.5 py-0.5 rounded-full font-mono hidden md:block"
           style={{
             background: "var(--glass-bg)",
             color: "var(--text-muted)",
             border: "1px solid var(--border-subtle)",
+            fontSize: "10px",
           }}
         >
           llama-3.3-70b
         </span>
+      </div>
+
+      {/* Center */}
+      <div className="flex-1 min-w-0 mx-2 hidden sm:flex items-center justify-center">
         {activeFile && (
           <div
-            className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs max-w-[200px]"
             style={{
               background: "rgba(124,58,237,0.1)",
               border: "1px solid rgba(124,58,237,0.3)",
@@ -139,93 +145,134 @@ export function TopBar({
             }}
           >
             {activeFile.type === "pdf" ? (
-              <FileText size={11} />
+              <FileText size={10} />
             ) : (
-              <Image size={11} />
+              <Image size={10} />
             )}
-            <span className="max-w-[80px] truncate">{activeFile.name}</span>
+            <span className="truncate">{activeFile.name}</span>
             <button
               onClick={onRemoveFile}
-              className="ml-0.5 opacity-70 hover:opacity-100"
+              className="opacity-70 hover:opacity-100"
             >
-              <X size={11} />
+              <X size={10} />
             </button>
           </div>
         )}
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
         {/* Language */}
-        <div className="hidden md:block">
-          <LanguageSelector value={language} onChange={onLanguageChange} />
+        <div className="relative">
+          <button
+            onClick={() => setShowLangDropdown(!showLangDropdown)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+            style={{
+              color: "var(--text-muted)",
+              background: "var(--glass-bg)",
+            }}
+          >
+            <Globe size={12} />
+            <span className="hidden sm:inline">{language}</span>
+            <span className="sm:hidden">{language.slice(0, 2)}</span>
+          </button>
+
+          {/* Dropdown */}
+          {showLangDropdown && (
+            <div
+              className="absolute right-0 top-full mt-1 rounded-lg py-1 min-w-[120px] z-50"
+              style={{
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-default)",
+              }}
+            >
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => {
+                    onLanguageChange(lang);
+                    setShowLangDropdown(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:opacity-80"
+                  style={{
+                    color:
+                      language === lang
+                        ? "var(--accent-primary)"
+                        : "var(--text-secondary)",
+                  }}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Shortcuts */}
         <button
           onClick={onToggleShortcuts}
-          className="p-2 rounded-lg hover:opacity-70 transition-all hidden md:flex"
+          className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all hidden md:flex"
           style={{
             color: "var(--text-secondary)",
             background: "var(--glass-bg)",
           }}
           title="Keyboard shortcuts (Ctrl+/)"
         >
-          <Keyboard size={16} />
+          <Keyboard size={14} />
         </button>
 
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-lg hover:opacity-70 transition-all"
+          className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all"
           style={{
             color: "var(--text-secondary)",
             background: "var(--glass-bg)",
           }}
           title="Toggle theme (Ctrl+L)"
         >
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
         </button>
 
         {/* Export */}
         {messages.length > 0 && (
           <button
             onClick={exportChat}
-            className="p-2 rounded-lg hover:opacity-70 transition-all"
+            className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all"
             style={{
               color: "var(--text-secondary)",
               background: "var(--glass-bg)",
             }}
             title="Export as PDF"
           >
-            <Download size={16} />
+            <Download size={14} />
           </button>
         )}
 
         {/* Attach */}
         <button
           onClick={onOpenFileUpload}
-          className="p-2 rounded-lg hover:opacity-70 transition-all"
+          className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all"
           style={{
             color: "var(--text-secondary)",
             background: "var(--glass-bg)",
           }}
           title="Attach file"
         >
-          <Paperclip size={16} />
+          <Paperclip size={14} />
         </button>
 
         {/* Clear */}
         <button
           onClick={onClearChat}
-          className="p-2 rounded-lg hover:opacity-70 transition-all"
+          className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all"
           style={{
             color: "var(--text-secondary)",
             background: "var(--glass-bg)",
           }}
           title="Clear chat"
         >
-          <Trash2 size={16} />
+          <Trash2 size={14} />
         </button>
       </div>
     </header>

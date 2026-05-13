@@ -35,6 +35,7 @@ async function streamResponse(
         if (!line.startsWith("data: ")) continue;
         try {
           const json = JSON.parse(line.slice(6));
+          if (json.error) throw new Error(json.error);
           if (json.chunk) {
             if (!hasStarted) {
               hasStarted = true;
@@ -43,9 +44,16 @@ async function streamResponse(
             fullReply += json.chunk;
             onChunk?.(json.chunk);
           }
-          if (json.error) throw new Error(json.error);
           if (json.done) break;
-        } catch {}
+        } catch (parseErr: any) {
+          // Only rethrow if it's a real error (not a JSON parse error on malformed chunk)
+          if (
+            parseErr instanceof Error &&
+            parseErr.message !== "Unexpected end of JSON input"
+          ) {
+            throw parseErr;
+          }
+        }
       }
     }
   } catch (err: any) {
