@@ -446,6 +446,60 @@ pre {
   }
 }
 
+/* Base logo state — moved filter here so hover can override it */
+/* ─── Base Logo ─── */
+.vyse-logo {
+  display: block;
+  object-fit: contain;
+  /* Bright base glow so it's visible even when idle */
+  filter: drop-shadow(0 0 14px rgba(139, 92, 246, 0.8)) drop-shadow(0 0 4px rgba(34, 211, 238, 0.4));
+  transition: transform 300ms ease, filter 300ms ease;
+  cursor: pointer;
+  will-change: transform, filter;
+}
+
+/* ─── Hover: crisp upscale + intensified glow ─── */
+.vyse-logo:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 28px rgba(139, 92, 246, 1)) drop-shadow(0 0 12px rgba(34, 211, 238, 0.8));
+}
+
+/* ─── THINKING: impossible-to-miss breathing pulse ─── */
+@keyframes vyse-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 14px rgba(139, 92, 246, 0.8)) drop-shadow(0 0 4px rgba(34, 211, 238, 0.4));
+  }
+
+  50% {
+    transform: scale(1.12);
+    /* CYAN + VIOLET double glow — pops hard on dark bg */
+    filter: drop-shadow(0 0 40px rgba(139, 92, 246, 1)) drop-shadow(0 0 20px rgba(34, 211, 238, 0.9)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
+  }
+}
+
+.vyse-logo-thinking {
+  animation: vyse-pulse 1.8s ease-in-out infinite;
+  /* Disable hover transition while thinking */
+  transition: none !important;
+}
+
+/* Brand text — tight tracking for logo feel */
+.vyse-brand-text {
+  font-family: 'Space Grotesk', 'SF Pro Display', 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  transition: color 300ms ease;
+}
+
+/* Optional: text subtly brightens when logo is hovered */
+.vyse-logo:hover+.vyse-brand-text,
+.vyse-logo:hover~.vyse-brand-text {
+  color: #ffffff;
+}
+
 @keyframes bounce-dot {
 
   0%,

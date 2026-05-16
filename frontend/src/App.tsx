@@ -14,10 +14,7 @@ import { StopButton } from "./components/Chat/StopButton";
 import { FileUpload } from "./components/Input/FileUpload";
 import { ToastContainer } from "./components/UI/Toast";
 import { KeyboardShortcuts } from "./components/UI/KeyboardShortcuts";
-import { WelcomePage } from "./components/Welcome/WelcomePage";
-import { summarizeYouTube } from "./utils/api";
-import { generateFlashcards, generateQuiz } from "./utils/generateFlashcards";
-import type { FlashcardData, QuizQuestion } from "./utils/generateFlashcards";
+import { WelcomeScreen } from "./components/Chat/WelcomeScreen";
 
 function extractYouTubeUrl(text: string): string | null {
   const patterns = [
@@ -33,14 +30,6 @@ function extractYouTubeUrl(text: string): string | null {
   return null;
 }
 
-async function handleGenerateContent(
-  content: string,
-  type: "flashcard" | "quiz",
-): Promise<FlashcardData[] | QuizQuestion[]> {
-  if (type === "flashcard") return generateFlashcards(content);
-  return generateQuiz(content);
-}
-
 function AppInner() {
   const [currentMode, setCurrentMode] = useState<AIMode>("tutor");
   const [inputValue, setInputValue] = useState("");
@@ -48,6 +37,10 @@ function AppInner() {
   const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [language, setLanguage] = useState<Language>("English");
+
+  // ── THE ONE STATE THAT CONTROLS EVERYTHING ────────────────────────────────
+  // true  = show the full Vyse welcome page (first load, after New Chat)
+  // false = show the chat layout (after picking a mode, or sidebar mode switch)
   const [showWelcome, setShowWelcome] = useState(true);
 
   const { toggleTheme } = useTheme();
@@ -93,6 +86,7 @@ function AppInner() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (showWelcome) return;
       if (e.ctrlKey || e.metaKey) {
         if (e.key === "/") {
           e.preventDefault();
@@ -134,24 +128,34 @@ function AppInner() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [toggleTheme, stopGeneration]);
+  }, [toggleTheme, stopGeneration, showWelcome]);
 
-  const handleWelcomeSelect = useCallback((mode: AIMode) => {
+  // Called when user picks a mode card on the Vyse welcome page
+  const handleWelcomeModeSelect = useCallback((mode: AIMode) => {
     setCurrentMode(mode);
-    setShowWelcome(false);
+    setShowWelcome(false); // ← enter chat layout
   }, []);
+
+  // Called when user clicks a suggestion chip on the Vyse welcome page
+  const handleWelcomeSuggestion = useCallback(
+    (text: string) => {
+      setShowWelcome(false); // ← enter chat layout first
+      setTimeout(() => {
+        sendChat(text, currentMode, "", undefined, languageRef.current);
+      }, 50);
+    },
+    [currentMode, sendChat],
+  );
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
     if (!text && !pendingImage) return;
     setInputValue("");
-
     const youtubeUrl = extractYouTubeUrl(text);
     if (youtubeUrl && !pendingImage) {
       await sendYouTube(youtubeUrl, text, languageRef.current);
       return;
     }
-
     await sendChat(
       text,
       currentMode,
@@ -183,6 +187,7 @@ function AppInner() {
     [currentMode, pdfContext, sendChat, sendYouTube],
   );
 
+  // New Chat → save current → show Vyse welcome page again
   const handleNewChat = useCallback(async () => {
     if (messagesRef.current.length > 0) {
       saveConversation(messagesRef.current, modeRef.current);
@@ -191,9 +196,10 @@ function AppInner() {
     await clearMessages();
     clearFile();
     setInputValue("");
-    setShowWelcome(true);
+    setShowWelcome(true); // ← back to full Vyse welcome page
   }, [saveConversation, clearMessages, clearFile, addToast]);
 
+  // Sidebar mode switch → stay in chat layout, ChatArea shows "Hello I'm X" inside
   const handleModeChange = useCallback(
     async (newMode: AIMode) => {
       if (newMode === currentMode && !showWelcome) return;
@@ -203,7 +209,7 @@ function AppInner() {
       setCurrentMode(newMode);
       clearFile();
       setInputValue("");
-      setShowWelcome(false);
+      setShowWelcome(false); // ← stay in chat layout, NOT the Vyse welcome page
       addToast(`Switched to ${MODES[newMode].name}`, "info");
     },
     [
@@ -236,7 +242,7 @@ function AppInner() {
       await clearMessages();
       clearFile();
       addToast("Conversation cleared", "info");
-      setShowWelcome(true);
+      setShowWelcome(true); // ← back to Vyse welcome page
     }
   }, [messages.length, clearMessages, clearFile, addToast]);
 
@@ -250,15 +256,33 @@ function AppInner() {
 
   const isMobile = window.innerWidth < 768;
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER 1: Full Vyse welcome page — shown ONLY on first load and New Chat
+  // No sidebar. No topbar. Just the welcome page taking up the full screen.
+  // ═══════════════════════════════════════════════════════════════════════════
   if (showWelcome) {
     return (
-      <>
-        <WelcomePage onSelectMode={handleWelcomeSelect} />
+      <div
+        style={{
+          height: "100dvh",
+          background: "var(--bg-base)",
+          overflow: "auto",
+        }}
+      >
+        <WelcomeScreen
+          mode={currentMode}
+          onSuggestion={handleWelcomeSuggestion}
+          onModeChange={handleWelcomeModeSelect}
+        />
         <ToastContainer toasts={toasts} onRemove={removeToast} />
-      </>
+      </div>
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER 2: Full chat layout — shown after user picks a mode
+  // ChatArea internally shows "Hello I'm CodeAI" when messages = []
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div
       className="flex overflow-hidden"
@@ -280,6 +304,7 @@ function AppInner() {
           currentMode={currentMode}
           history={history}
           deletingIds={deletingIds}
+          isLoading={isLoading || isStreaming} 
           onNewChat={handleNewChat}
           onModeChange={handleModeChange}
           onSelectHistory={handleSelectHistory}
@@ -313,7 +338,7 @@ function AppInner() {
           currentMode={currentMode}
           onSuggestion={handleSuggestion}
           onFeedback={setMessageFeedback}
-          onGenerate={handleGenerateContent}
+          onModeChange={handleModeChange}
           onRegenerate={() =>
             regenerateLastResponse(currentMode, pdfContext, languageRef.current)
           }

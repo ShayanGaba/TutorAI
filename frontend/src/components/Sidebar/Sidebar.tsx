@@ -3,12 +3,14 @@ import { Plus, Settings, Zap, Trash2, Info } from "lucide-react";
 import type { AIMode, ChatHistoryItem } from "../../types";
 import { ModeSelector } from "./ModeSelector";
 import { ChatHistory } from "./ChatHistory";
+import "../../index.css";
 
 interface SidebarProps {
   isOpen: boolean;
   currentMode: AIMode;
   history: ChatHistoryItem[];
   deletingIds: Set<string>;
+  isLoading?: boolean; // ← ADD THIS
   onNewChat: () => void;
   onModeChange: (mode: AIMode) => void;
   onSelectHistory: (item: ChatHistoryItem) => void;
@@ -22,6 +24,7 @@ export function Sidebar({
   currentMode,
   history,
   deletingIds,
+  isLoading = false, // ← ADD THIS (default false so it's safe if not passed)
   onNewChat,
   onModeChange,
   onSelectHistory,
@@ -31,6 +34,9 @@ export function Sidebar({
 }: SidebarProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+
+    console.log("Sidebar isLoading:", isLoading);
 
   return (
     <aside
@@ -56,37 +62,29 @@ export function Sidebar({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "10px",
               marginBottom: "12px",
               animation: "slideDown 0.6s cubic-bezier(0.22,1,0.36,1) both",
             }}
           >
-            <div
+            <img
+              src="/vyse-logo2.png"
+              alt="Vyse"
+              width={64}
+              height={64}
+              className={`vyse-logo ${isLoading ? "vyse-logo-thinking" : ""}`}
               style={{
-                width: "31px",
-                height: "33px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #7C3AED, #4C1D95)",
-                boxShadow: "0 0 28px rgba(124,58,237,0.5)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "18px",
-                fontWeight: "700",
-                color: "white",
-                letterSpacing: "-0.03em",
-                fontFamily: "'SF Pro Display', 'Segoe UI', sans-serif",
+                display: "block",
+                objectFit: "contain",
+                marginLeft: "-4px",
               }}
-            >
-              V
-            </div>
+            />
             <span
+              className="vyse-brand-text"
               style={{
-                fontSize: "21px",
-                fontWeight: "700",
+                fontSize: "23px",
                 color: "var(--text-primary)",
-                letterSpacing: "-0.02em",
-                fontFamily: "'SF Pro Display', 'Segoe UI', sans-serif",
+                marginLeft: "-8px",
+                lineHeight: 1,
               }}
             >
               Vyse
@@ -156,14 +154,14 @@ export function Sidebar({
                   background: "linear-gradient(135deg, #7C3AED, #6D28D9)",
                 }}
               >
-                T
+                V
               </div>
               <div>
                 <div
                   className="text-xs font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  TutorAI
+                  Vyse
                 </div>
                 <div className="text-xs" style={{ color: "var(--text-muted)" }}>
                   v2.0
@@ -244,7 +242,7 @@ export function Sidebar({
                     style={{ color: "var(--text-muted)" }}
                   >
                     <Info size={13} />
-                    About TutorAI v2.0
+                    About Vyse v2.0
                   </div>
                 </>
               )}
