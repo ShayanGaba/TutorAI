@@ -17,6 +17,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:5174",
+        "https://vyse-chatbot.vercel.app",
         "https://mytutor-ai.vercel.app",
     ],
     allow_credentials=True,
