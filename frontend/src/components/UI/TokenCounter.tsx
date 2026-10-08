@@ -3,7 +3,6 @@ interface Props {
 }
 
 function estimateTokens(text: string): number {
-  // ~4 chars per token (rough estimate)
   return Math.ceil(text.length / 4);
 }
 

@@ -21,7 +21,6 @@ export interface QuizQuestion {
   explanation: string;
 }
 
-// Parse flashcard JSON safely
 function parseFlashcards(raw: string): FlashcardData[] {
   try {
     const cleaned = raw
@@ -37,7 +36,6 @@ function parseFlashcards(raw: string): FlashcardData[] {
     }
   } catch {}
 
-  // Text fallback
   const cards: FlashcardData[] = [];
   const lines = raw.split("\n").filter((l) => l.trim());
   for (let i = 0; i < lines.length - 1; i++) {
@@ -53,7 +51,6 @@ function parseFlashcards(raw: string): FlashcardData[] {
   return cards.slice(0, 10);
 }
 
-// Parse quiz JSON safely
 function parseQuiz(raw: string): QuizQuestion[] {
   try {
     const cleaned = raw
@@ -115,7 +112,6 @@ ${content.slice(0, 3000)}
 
   if (!res.ok) throw new Error("Failed to generate flashcards");
 
-  // Read full SSE stream
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let full = "";

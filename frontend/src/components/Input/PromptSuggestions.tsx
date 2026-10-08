@@ -10,7 +10,6 @@ interface PromptSuggestionsProps {
   onSelect: (text: string) => void;
 }
 
-// ── Static chips per mode (shown when input is empty) ──────────────────────
 const MODE_DEFAULTS: Record<AIMode, string[]> = {
   tutor: [
     "Explain quantum entanglement simply",
@@ -52,14 +51,12 @@ const MODE_DEFAULTS: Record<AIMode, string[]> = {
   ],
 };
 
-// ── Dynamic chips based on what user is typing ────────────────────────────
 function getDynamicSuggestions(input: string, mode: AIMode): string[] {
   const lower = input.toLowerCase().trim();
   if (!lower || lower.length < 3) return [];
 
   const suggestions: string[] = [];
 
-  // Universal patterns
   if (lower.startsWith("what is") || lower.startsWith("what's")) {
     const topic = input.replace(/what(?:'s| is)\s*/i, "").trim();
     if (topic) {
@@ -91,7 +88,6 @@ function getDynamicSuggestions(input: string, mode: AIMode): string[] {
   } else if (lower.includes("explain") || lower.includes("tell me")) {
     suggestions.push(`${input} like I'm 15`, `${input} — with examples`);
   } else if (input.length > 10) {
-    // Generic expansions
     if (mode === "tutor") {
       suggestions.push(
         `${input} — give me a summary`,
@@ -137,7 +133,6 @@ export function PromptSuggestions({
       return;
     }
 
-    // Clear on mode change
     if (prevModeRef.current !== currentMode) {
       prevModeRef.current = currentMode;
       setChips([]);
@@ -150,10 +145,8 @@ export function PromptSuggestions({
       const trimmed = inputValue.trim();
 
       if (!trimmed) {
-        // Show mode defaults only on empty chat (welcome feel)
         if (!hasMessages) {
           const defaults = MODE_DEFAULTS[currentMode];
-          // Pick 3 random ones
           const shuffled = [...defaults]
             .sort(() => Math.random() - 0.5)
             .slice(0, 3);

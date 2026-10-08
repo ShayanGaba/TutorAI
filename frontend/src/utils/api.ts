@@ -46,7 +46,6 @@ async function streamResponse(
           }
           if (json.done) break;
         } catch (parseErr: any) {
-          // Only rethrow if it's a real error (not a JSON parse error on malformed chunk)
           if (
             parseErr instanceof Error &&
             parseErr.message !== "Unexpected end of JSON input"

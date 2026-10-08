@@ -42,7 +42,6 @@ export function useVoice(onTranscriptChange: (text: string) => void) {
         }
       }
 
-      // Show both final + interim in input field
       const displayText = (finalTranscript + interimTranscript).trim();
       onTranscriptChange(displayText);
     };
@@ -70,7 +69,6 @@ export function useVoice(onTranscriptChange: (text: string) => void) {
       try {
         recognitionRef.current.stop();
       } catch (e) {
-        // ignore
       }
       recognitionRef.current = null;
     }

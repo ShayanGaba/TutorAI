@@ -10,7 +10,7 @@ interface SidebarProps {
   currentMode: AIMode;
   history: ChatHistoryItem[];
   deletingIds: Set<string>;
-  isLoading?: boolean; // ← ADD THIS
+  isLoading?: boolean; 
   onNewChat: () => void;
   onModeChange: (mode: AIMode) => void;
   onSelectHistory: (item: ChatHistoryItem) => void;
@@ -24,7 +24,7 @@ export function Sidebar({
   currentMode,
   history,
   deletingIds,
-  isLoading = false, // ← ADD THIS (default false so it's safe if not passed)
+  isLoading = false, 
   onNewChat,
   onModeChange,
   onSelectHistory,
@@ -56,7 +56,6 @@ export function Sidebar({
           transition: "opacity 200ms ease",
         }}
       >
-        {/* Header */}
         <div className="px-4 pt-4 pb-3 flex-shrink-0">
           <div
             style={{
@@ -91,7 +90,6 @@ export function Sidebar({
             </span>
           </div>
 
-          {/* New Chat Button */}
           <button
             onClick={() => {
               onNewChat();
@@ -120,7 +118,6 @@ export function Sidebar({
           </button>
         </div>
 
-        {/* Mode Selector */}
         <div
           className="flex-shrink-0 pb-4"
           style={{ borderBottom: "1px solid var(--border-subtle)" }}
@@ -128,7 +125,6 @@ export function Sidebar({
           <ModeSelector currentMode={currentMode} onModeChange={onModeChange} />
         </div>
 
-        {/* History */}
         <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-4">
           <ChatHistory
             history={history}
@@ -141,7 +137,6 @@ export function Sidebar({
           />
         </div>
 
-        {/* Footer */}
         <div
           className="px-4 py-3 flex-shrink-0 relative"
           style={{ borderTop: "1px solid var(--border-subtle)" }}
@@ -180,7 +175,6 @@ export function Sidebar({
             </button>
           </div>
 
-          {/* Settings Popover */}
           {showSettings && (
             <div
               className="absolute bottom-14 right-4 rounded-xl p-3 flex flex-col gap-1 min-w-[180px] animate-scale-in"

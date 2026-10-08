@@ -99,7 +99,6 @@ export function WelcomeScreen({
           gap: "32px",
         }}
       >
-        {/* ── Vyse logo + greeting ── */}
         <div
           style={{
             textAlign: "center",
@@ -110,7 +109,6 @@ export function WelcomeScreen({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              // gap: "10px",
               marginBottom: "14px",
             }}
           >
@@ -170,13 +168,6 @@ export function WelcomeScreen({
           </p>
         </div>
 
-        {/* ── Mode grid — auto-centering ── */}
-        {/*
-          Key fix: use a CSS trick — flex wrap with justify-content center.
-          This naturally centers any number of cards including odd last rows.
-          Each card has a fixed width so 3 fit on desktop, 2 on tablet, 1 on mobile.
-          When there are 5 cards: row1 = 3, row2 = 2 (centered automatically).
-        */}
         <div
           style={{
             width: "100%",
@@ -198,7 +189,6 @@ export function WelcomeScreen({
                 key={m}
                 onClick={() => onModeChange(m)}
                 style={{
-                  // Fixed width — 3 per row on desktop, 2 on tablet, 1 on mobile
                   width: "clamp(200px, calc(33.333% - 10px), 220px)",
                   flexShrink: 0,
                   position: "relative",
@@ -311,7 +301,6 @@ export function WelcomeScreen({
           })}
         </div>
 
-        {/* ── "Try asking" chips for active mode ── */}
         <div
           style={{
             width: "100%",

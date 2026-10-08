@@ -133,7 +133,6 @@ export function TopBar({
         </span>
       </div>
 
-      {/* Center */}
       <div className="flex-1 min-w-0 mx-2 hidden sm:flex items-center justify-center">
         {activeFile && (
           <div
@@ -160,9 +159,7 @@ export function TopBar({
         )}
       </div>
 
-      {/* Right */}
       <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-        {/* Language */}
         <div className="relative">
           <button
             onClick={() => setShowLangDropdown(!showLangDropdown)}
@@ -177,7 +174,6 @@ export function TopBar({
             <span className="sm:hidden">{language.slice(0, 2)}</span>
           </button>
 
-          {/* Dropdown */}
           {showLangDropdown && (
             <div
               className="absolute right-0 top-full mt-1 rounded-lg py-1 min-w-[120px] z-50"
@@ -208,7 +204,6 @@ export function TopBar({
           )}
         </div>
 
-        {/* Shortcuts */}
         <button
           onClick={onToggleShortcuts}
           className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all hidden md:flex"
@@ -221,7 +216,6 @@ export function TopBar({
           <Keyboard size={14} />
         </button>
 
-        {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all"
@@ -234,7 +228,6 @@ export function TopBar({
           {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
         </button>
 
-        {/* Export */}
         {messages.length > 0 && (
           <button
             onClick={exportChat}
@@ -249,7 +242,6 @@ export function TopBar({
           </button>
         )}
 
-        {/* Attach */}
         <button
           onClick={onOpenFileUpload}
           className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all"
@@ -262,7 +254,6 @@ export function TopBar({
           <Paperclip size={14} />
         </button>
 
-        {/* Clear */}
         <button
           onClick={onClearChat}
           className="p-1.5 sm:p-2 rounded-lg hover:opacity-70 transition-all"

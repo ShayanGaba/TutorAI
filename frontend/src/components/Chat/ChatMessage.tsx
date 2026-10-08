@@ -26,7 +26,6 @@ interface ChatMessageProps {
   feedback?: "up" | "down" | null;
 }
 
-// FIX 4: Full-screen image lightbox
 function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -77,7 +76,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const [codeCopied, setCodeCopied] = useState<string | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [showCursor, setShowCursor] = useState(true);
-  const [lightboxOpen, setLightboxOpen] = useState(false); // FIX 4
+  const [lightboxOpen, setLightboxOpen] = useState(false); 
 
   useEffect(() => {
     if (!isStreaming) return;
@@ -109,7 +108,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   if (isUser) {
     return (
       <>
-        {/* FIX 4: Lightbox for sent images */}
         {lightboxOpen && imageData && (
           <ImageLightbox
             src={imageData}
@@ -119,7 +117,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
         <div className="flex justify-end mb-6 px-2">
           <div className="flex flex-col items-end gap-1 max-w-[75%]">
-            {/* FIX 4: Clickable image with zoom icon */}
             {imageData && (
               <div
                 className="mb-2 relative group cursor-pointer"
@@ -134,7 +131,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     boxShadow: "0 4px 20px rgba(124,58,237,0.2)",
                   }}
                 />
-                {/* Zoom overlay */}
                 <div
                   className="absolute inset-0 flex items-center justify-center rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                   style={{ background: "rgba(0,0,0,0.3)" }}
@@ -191,7 +187,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   }
 
-  // AI Message
   return (
     <div
       className="flex justify-start mb-6 px-2 group"
@@ -546,7 +541,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         </div>
 
-        {/* Actions */}
         <div
           className="flex items-center gap-1 ml-1 transition-all duration-200"
           style={{ opacity: showActions && !isStreaming ? 1 : 0 }}

@@ -4,7 +4,7 @@ import { ThinkingIndicator } from "./ThinkingIndicator";
 import { FlashcardQuiz, StudyActions } from "./FlashcardQuiz";
 import { Zap, ArrowDown } from "lucide-react";
 import type { Message, AIMode } from "../../types";
-import { MODES } from "../../types"; // ADD THIS IMPORT
+import { MODES } from "../../types"; 
 
 interface ChatAreaProps {
   messages: Message[];
@@ -35,7 +35,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const isAutoScrolling = useRef(false);
   const userScrolledUp = useRef(false);
 
-  // Flashcard/Quiz state
   const [activeStudy, setActiveStudy] = useState<{
     msgId: string;
     mode: "flashcard" | "quiz";
@@ -49,10 +48,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const isCurrentlyStreaming = messages.some((m) => m.isStreaming);
 
-  const mode = MODES[currentMode]; // GET MODE CONFIG
-  const { Icon } = mode; // GET ICON
+  const mode = MODES[currentMode]; 
+  const { Icon } = mode; 
 
-  // ── Scroll helpers ────────────────────────────────────────────────────────
   const getDistFromBottom = useCallback(() => {
     const el = containerRef.current;
     if (!el) return 0;
@@ -75,12 +73,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     if (!isAutoScrolling.current) userScrolledUp.current = !near;
   }, [getDistFromBottom, isCurrentlyStreaming, isThinking]);
 
-  // Auto-scroll when content arrives — skip if user scrolled up
   useEffect(() => {
     if (!userScrolledUp.current) scrollToBottom("smooth");
   }, [messages, isThinking, scrollToBottom]);
 
-  // Always scroll on new user message
   useEffect(() => {
     const last = messages[messages.length - 1];
     if (last?.role === "user") {
@@ -89,17 +85,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   }, [messages.length, scrollToBottom]);
 
-  // Reset scroll lock when thinking starts
   useEffect(() => {
     if (isThinking) userScrolledUp.current = false;
   }, [isThinking]);
 
-  // Hide jump button when generation stops
   useEffect(() => {
     if (!isCurrentlyStreaming && !isThinking) setShowScrollBtn(false);
   }, [isCurrentlyStreaming, isThinking]);
 
-  // Last completed AI message eligible for flashcards/quiz
   const lastAiMsgId = [...messages]
     .reverse()
     .find(
@@ -122,12 +115,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           WebkitOverflowScrolling: "touch",
         }}
       >
-        {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* WELCOME SCREEN — Shows when no messages (blank chat area)          */}
-        {/* ═════════════════════════════════════════════════════════════════ */}
+
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-full py-8 sm:py-12 px-4">
-            {/* Logo */}
             <div
               className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-4 sm:mb-6"
               style={{
@@ -139,7 +129,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               <Zap size={24} sm:size={28} color="white" fill="white" />
             </div>
 
-            {/* Title */}
             <h1
               className="font-bold text-center mb-2 text-xl sm:text-[28px]"
               style={{
@@ -150,7 +139,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               Hello, I'm {mode.name} 👋
             </h1>
 
-            {/* Subtitle */}
             <p
               className="text-center mb-6 sm:mb-10 text-sm sm:text-base px-4"
               style={{
@@ -161,7 +149,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               {mode.subtitle}
             </p>
 
-            {/* Suggestion Chips */}
             <div
               className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full px-2"
               style={{ maxWidth: "600px" }}
@@ -207,9 +194,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             </div>
           </div>
         ) : (
-          /* ═════════════════════════════════════════════════════════════════ */
-          /* CHAT MESSAGES — Shows when there are messages                     */
-          /* ═════════════════════════════════════════════════════════════════ */
+
           <div className="max-w-3xl mx-auto w-full px-4 py-6">
             {messages.map((msg) => (
               <div key={msg.id}>
@@ -227,7 +212,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   feedback={msg.feedback}
                 />
 
-                {/* Flashcard / Quiz */}
                 {msg.role === "assistant" &&
                   !msg.isStreaming &&
                   !msg.isError &&
@@ -278,7 +262,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         )}
       </div>
 
-      {/* Jump to latest button */}
       {showScrollBtn && (
         <button
           onClick={() => {

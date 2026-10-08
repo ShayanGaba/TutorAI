@@ -29,7 +29,6 @@ client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
 conversation_histories = {}
 
 
-# ─── WEB SEARCH ────────────────────────────────────────────────────────────────
 def web_search(query: str, max_results: int = 6) -> str:
     try:
         with DDGS() as ddgs:
@@ -47,7 +46,6 @@ def web_search(query: str, max_results: int = 6) -> str:
 
 
 def should_force_search(message: str) -> bool:
-    """Force web search for queries that need real-time data"""
     patterns = [
         r'\b(pkr|usd|eur|gbp|aed|sar|inr|dirham|dollar|pound|euro|rupee|riyal)\b',
         r'\b(price|rate|exchange|convert|stock|crypto|bitcoin|gold|silver)\b',
@@ -60,7 +58,6 @@ def should_force_search(message: str) -> bool:
     return any(re.search(p, msg_lower, re.IGNORECASE) for p in patterns)
 
 
-# ─── YOUTUBE ───────────────────────────────────────────────────────────────────
 def extract_youtube_id(url: str) -> Optional[str]:
     patterns = [
         r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})',
@@ -73,7 +70,6 @@ def extract_youtube_id(url: str) -> Optional[str]:
 
 
 def get_youtube_oembed(video_id: str) -> dict:
-    """Fetch real video title/author from YouTube oEmbed — no API key needed."""
     try:
         import urllib.request
         url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
@@ -96,7 +92,6 @@ def get_youtube_context(video_id: str, url: str) -> str:
     return ctx
 
 
-# ─── LANGUAGE ──────────────────────────────────────────────────────────────────
 def apply_language(system: str, language: str) -> str:
     if language and language != "English":
         system += (
@@ -106,7 +101,6 @@ def apply_language(system: str, language: str) -> str:
     return system
 
 
-# ─── MODES ─────────────────────────────────────────────────────────────────────
 RESPONSE_LENGTH_RULE = """
 🎯 RESPONSE LENGTH — CRITICAL:
 - Simple/factual question (greetings, conversions, definitions, yes/no, capital cities, boiling points) → 1-3 sentences MAX. No headers. No bullets.
@@ -181,7 +175,6 @@ CRITICAL: Only analyze the exact video provided. If info is unavailable, say so 
 }
 
 
-# ─── MODELS ────────────────────────────────────────────────────────────────────
 class Message(BaseModel):
     message: str
     mode: str = "tutor"
@@ -194,7 +187,6 @@ class YouTubeRequest(BaseModel):
     language: str = "English"
 
 
-# ─── ROUTES ────────────────────────────────────────────────────────────────────
 @app.get("/")
 def home():
     return {"status": "Vyse backend v6.0 — live 🚀"}
@@ -208,7 +200,6 @@ async def chat(data: Message, session_id: str = Header(default="default")):
     if data.pdf_context:
         system = f"You have access to this document:\n---\n{data.pdf_context[:8000]}\n---\n\n" + system
 
-    # Always run web search — force it for financial/current queries
     search_context = web_search(data.message)
     if search_context:
         priority = "⚠️ PRIORITY: Use these web results for any factual/current data. Today is May 2026." if should_force_search(data.message) else ""
@@ -233,11 +224,11 @@ async def chat(data: Message, session_id: str = Header(default="default")):
                 {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{base64_str}"}}
             ]}]
         )
-        model = "meta-llama/llama-4-scout-17b-16e-instruct"
+        model = "qwen/qwen3.8-27b"
     else:
         history.append({"role": "user", "content": data.message})
         messages_to_send = [{"role": "system", "content": system}] + history[-20:]
-        model = "llama-3.3-70b-versatile"
+        model = "qwen/qwen3.8-27b"
 
     async def generate():
         full_reply = ""
@@ -261,7 +252,6 @@ async def chat(data: Message, session_id: str = Header(default="default")):
         if data.image_data:
             history.append({"role": "user", "content": data.message or "[image]"})
         history.append({"role": "assistant", "content": full_reply})
-        # Keep history bounded to last 40 messages
         if len(history) > 40:
             conversation_histories[session_id] = history[-40:]
 
@@ -294,7 +284,7 @@ If you genuinely cannot find information, say: "I could not find detailed inform
         full_reply = ""
         try:
             stream = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": prompt}
@@ -324,4 +314,5 @@ async def reset(session_id: str = Header(default="default")):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 7860))
+    uvicorn.run(app, host="0.0.0.0", port=port)

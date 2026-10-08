@@ -56,7 +56,7 @@ export interface ActiveFile {
   size: number;
   type: "pdf" | "image";
   data?: string;
-  previewUrl?: string; // ✅ for image preview
+  previewUrl?: string; 
 }
 
 export interface ToastItem {

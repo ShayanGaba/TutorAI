@@ -38,9 +38,6 @@ function AppInner() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [language, setLanguage] = useState<Language>("English");
 
-  // ── THE ONE STATE THAT CONTROLS EVERYTHING ────────────────────────────────
-  // true  = show the full Vyse welcome page (first load, after New Chat)
-  // false = show the chat layout (after picking a mode, or sidebar mode switch)
   const [showWelcome, setShowWelcome] = useState(true);
 
   const { toggleTheme } = useTheme();
@@ -130,16 +127,14 @@ function AppInner() {
     return () => window.removeEventListener("keydown", handler);
   }, [toggleTheme, stopGeneration, showWelcome]);
 
-  // Called when user picks a mode card on the Vyse welcome page
   const handleWelcomeModeSelect = useCallback((mode: AIMode) => {
     setCurrentMode(mode);
-    setShowWelcome(false); // ← enter chat layout
+    setShowWelcome(false); 
   }, []);
 
-  // Called when user clicks a suggestion chip on the Vyse welcome page
   const handleWelcomeSuggestion = useCallback(
     (text: string) => {
-      setShowWelcome(false); // ← enter chat layout first
+      setShowWelcome(false); 
       setTimeout(() => {
         sendChat(text, currentMode, "", undefined, languageRef.current);
       }, 50);
@@ -187,7 +182,6 @@ function AppInner() {
     [currentMode, pdfContext, sendChat, sendYouTube],
   );
 
-  // New Chat → save current → show Vyse welcome page again
   const handleNewChat = useCallback(async () => {
     if (messagesRef.current.length > 0) {
       saveConversation(messagesRef.current, modeRef.current);
@@ -196,10 +190,9 @@ function AppInner() {
     await clearMessages();
     clearFile();
     setInputValue("");
-    setShowWelcome(true); // ← back to full Vyse welcome page
+    setShowWelcome(true); 
   }, [saveConversation, clearMessages, clearFile, addToast]);
 
-  // Sidebar mode switch → stay in chat layout, ChatArea shows "Hello I'm X" inside
   const handleModeChange = useCallback(
     async (newMode: AIMode) => {
       if (newMode === currentMode && !showWelcome) return;
@@ -209,7 +202,7 @@ function AppInner() {
       setCurrentMode(newMode);
       clearFile();
       setInputValue("");
-      setShowWelcome(false); // ← stay in chat layout, NOT the Vyse welcome page
+      setShowWelcome(false); 
       addToast(`Switched to ${MODES[newMode].name}`, "info");
     },
     [
@@ -242,7 +235,7 @@ function AppInner() {
       await clearMessages();
       clearFile();
       addToast("Conversation cleared", "info");
-      setShowWelcome(true); // ← back to Vyse welcome page
+      setShowWelcome(true); 
     }
   }, [messages.length, clearMessages, clearFile, addToast]);
 
@@ -256,10 +249,6 @@ function AppInner() {
 
   const isMobile = window.innerWidth < 768;
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER 1: Full Vyse welcome page — shown ONLY on first load and New Chat
-  // No sidebar. No topbar. Just the welcome page taking up the full screen.
-  // ═══════════════════════════════════════════════════════════════════════════
   if (showWelcome) {
     return (
       <div
@@ -279,10 +268,6 @@ function AppInner() {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER 2: Full chat layout — shown after user picks a mode
-  // ChatArea internally shows "Hello I'm CodeAI" when messages = []
-  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div
       className="flex overflow-hidden"

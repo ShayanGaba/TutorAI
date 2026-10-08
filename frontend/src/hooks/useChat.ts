@@ -5,7 +5,6 @@ import { sendMessage, summarizeYouTube, resetConversation } from "../utils/api";
 let msgCounter = 0;
 const genId = () => `msg-${++msgCounter}-${Date.now()}`;
 
-// Realistic streaming: buffers chunks and drains them at natural reading pace
 function createStreamingBuffer(
   onChunk: (char: string) => void,
   onDone: () => void,
@@ -70,7 +69,6 @@ export function useChat(
     null,
   );
 
-  // ─── Core streaming executor (shared by sendChat + sendYouTube) ───
   const _executeStream = useCallback(
     async (
       userMsg: Message,
@@ -182,7 +180,6 @@ export function useChat(
     [onToast],
   );
 
-  // ─── Send normal chat message ───
   const sendChat = useCallback(
     async (
       userText: string,
@@ -218,7 +215,6 @@ export function useChat(
     [isLoading, isStreaming, _executeStream],
   );
 
-  // ─── Send YouTube URL for analysis ───
   const sendYouTube = useCallback(
     async (
       youtubeUrl: string,
@@ -227,7 +223,6 @@ export function useChat(
     ) => {
       if (isLoading || isStreaming) return;
 
-      // Show the user's original message in the chat
       const userMsg: Message = {
         id: genId(),
         role: "user",

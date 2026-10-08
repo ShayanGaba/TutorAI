@@ -18,7 +18,6 @@ export function loadAllChats(): ChatHistoryItem[] {
         const raw = localStorage.getItem(key);
         if (raw) items.push(JSON.parse(raw) as ChatHistoryItem);
       } catch {
-        // skip malformed
       }
     }
   }

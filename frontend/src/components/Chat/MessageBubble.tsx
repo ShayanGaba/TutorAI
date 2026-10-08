@@ -27,7 +27,6 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
       className="rounded-lg overflow-hidden my-2"
       style={{ border: '1px solid rgba(255,255,255,0.08)' }}
     >
-      {/* Code header */}
       <div
         className="flex items-center justify-between px-4 py-2"
         style={{ background: '#161625', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
@@ -205,7 +204,6 @@ export function MessageBubble({ message, onFeedback, onRegenerate, onRetry }: Me
     );
   }
 
-  // AI message
   return (
     <div className="group flex flex-col gap-0 animate-fade-slide-right">
       <div className="flex items-start gap-3 max-w-[85%] md:max-w-[85%] max-w-[95%]">
